@@ -1,56 +1,79 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, FC } from 'react'
 import '../App.css'
 import axios from 'axios'
-import { Product } from '~/resouces/Product'
 import Products from '~/components/Products'
 import { Link } from 'react-router-dom'
 import { BASE_URL } from '~/config/baseURL'
+import { ApiProductListResut, Pagination } from '~/resouces/Paginate'
 
-function ProductPage() {
-  const [products, setProducts] = useState<Product[]>([])
-  const [condition, setCondition] = useState<any>({
+type Condition = {
+  _page: number
+  _per_page: number
+}
+
+const ProductPage: FC = () => {
+  const [paginationProduct, setPagiantionProduct] = useState<ApiProductListResut | null>(null)
+
+  const [loading, setLoading] = useState(false)
+
+  const [condition, setCondition] = useState<Condition>({
     _page: 1,
-    _per_page: 10
+    _per_page: 2
   })
 
+  console.log(paginationProduct)
+
   useEffect(() => {
-    axios
-      .get<Product[]>(`${BASE_URL}/products?_page=${condition._page}&_per_page=${condition._per_page}`)
-      .then((axiosResponse) => {
-        setProducts(axiosResponse.data)
-      })
-      .catch((error: unknown) => {
-        console.log(error)
-      })
+    setLoading(true)
+    setTimeout(() => {
+      axios
+        .get<ApiProductListResut>(`${BASE_URL}/products?_page=${condition._page}&_per_page=${condition._per_page}`)
+        .then((axiosResponse) => {
+          setLoading(false)
+          setPagiantionProduct(axiosResponse.data)
+        })
+        .catch((error: unknown) => {
+          setLoading(false)
+          console.log(error)
+        })
+    }, 2000)
   }, [condition])
+
+  if (loading === true) {
+    return 'Loading....'
+  }
 
   return (
     <>
       <div>Page hien tai {condition._page}</div>
-      <button
-        onClick={() => {
-          setCondition({
-            ...condition,
-            _page: condition._page - 1
-          })
-        }}
-      >
-        Quay lai trang truoc
-      </button>
-      <button
-        onClick={() => {
-          setCondition({
-            ...condition,
-            _page: condition._page + 1
-          })
-        }}
-      >
-        Di toi trang sau
-      </button>
+      {!!paginationProduct?.prev && (
+        <button
+          onClick={() => {
+            setCondition({
+              ...condition,
+              _page: condition._page - 1
+            })
+          }}
+        >
+          Quay lai trang truoc
+        </button>
+      )}
+      {paginationProduct?.next && (
+        <button
+          onClick={() => {
+            setCondition({
+              ...condition,
+              _page: condition._page + 1
+            })
+          }}
+        >
+          Di den trang tiep
+        </button>
+      )}
       <Link to={'/'}>Ve trang chu</Link>
       <input type='text' />
       Danh sach products
-      <Products products={products} />
+      {paginationProduct && <Products products={paginationProduct?.data} />}
     </>
   )
 }
